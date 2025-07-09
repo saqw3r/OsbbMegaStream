@@ -49,12 +49,13 @@ namespace auth.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
-            if (request.Username == "streamer" && request.Password == "securepass")
+            if (request.Username == "streamer" && request.Password == "securepass") // hard-coded credentials for demo purposes
             {
-                // Generate a datetime-based GUID
+                // Generate a datetime-based UUID for the stream path
                 var guid = Guid.NewGuid();
-                return Ok(new { streampath = guid.ToString() , datetime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") });
+                return Ok(new { streampath = guid.ToString(), datetime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") });
             }
+            
             return Unauthorized();
         }
     }

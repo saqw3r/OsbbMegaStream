@@ -59,16 +59,35 @@ export default {
     },
     async startStreaming() {
       try {
+        // Step 1: Authenticate and get streampath
+        this.statusMessage = 'Authenticating...';
+        const loginResponse = await fetch('http://localhost:5260/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'streamer', password: 'securepass' }) // hard-coded credentials for demo purposes
+        });
+        if (!loginResponse.ok) {
+          this.statusMessage = 'Login failed. Check credentials.';
+          return;
+        }
+        const loginData = await loginResponse.json();
+        const streampath = loginData.streampath;
+        if (!streampath) {
+          this.statusMessage = 'No stream path received from server.';
+          return;
+        }
+
+        // Step 2: Get camera/mic and start streaming
         this.localStream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
         });
         this.$refs.videoElement.srcObject = this.localStream;
         this.statusMessage = 'Camera accessed. Ready to start streaming.';
-        await this.initiateWhip();
+        await this.initiateWhip(streampath);
       } catch (error) {
-        console.error('Error accessing media devices.', error);
-        this.statusMessage = 'Error accessing media devices. Please check permissions.';
+        console.error('Error starting streaming.', error);
+        this.statusMessage = 'Error starting streaming. Please check permissions and network.';
       }
     },
     stopStreaming() {
@@ -84,7 +103,7 @@ export default {
       this.isStreaming = false;
       this.statusMessage = 'Stream stopped.';
     },
-    async initiateWhip() {
+    async initiateWhip(streampath) {
       this.statusMessage = 'Connecting to Mediamtx...';
 
       this.peerConnection = new RTCPeerConnection();
@@ -98,9 +117,8 @@ export default {
       await this.peerConnection.setLocalDescription(offer);
 
       try {
-        const username = "streamer"; // get this from your login/session
-        const password = "securepass"; // get this securely
-        const whipUrl = `http://localhost:8889/vueappstream/whip?user=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+        // Example: append streampath to the WHIP URL if required by your backend
+        const whipUrl = `http://localhost:8889/${encodeURIComponent(streampath)}/whip`;
 
         const response = await fetch(whipUrl, {
           method: 'POST',
