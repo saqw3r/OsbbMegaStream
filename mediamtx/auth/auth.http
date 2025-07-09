@@ -1,6 +1,23 @@
 @auth_HostAddress = http://localhost:5260
 
-GET {{auth_HostAddress}}/auth/
-Accept: application/json
 
-###
+# Login Request
+POST {{auth_HostAddress}}/login
+Content-Type: application/json
+
+{
+  "username": "streamer",
+  "password": "securepass"
+}
+
+# Auth Request
+POST {{auth_HostAddress}}/auth
+Content-Type: application/json
+
+{
+  "user": "streamer",
+  "password": "securepass",
+  "path": "stream/path",
+  "protocol": "whip",
+  "query": "jwt=your_jwt_token"
+}
