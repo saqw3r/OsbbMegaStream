@@ -98,7 +98,11 @@ export default {
       await this.peerConnection.setLocalDescription(offer);
 
       try {
-        const response = await fetch('http://localhost:8889/vueappstream/whip', {
+        const username = "streamer"; // get this from your login/session
+        const password = "securepass"; // get this securely
+        const whipUrl = `http://localhost:8889/vueappstream/whip?user=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+
+        const response = await fetch(whipUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/sdp',
