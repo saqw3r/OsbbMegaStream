@@ -59,9 +59,9 @@ export default {
     },
     async startStreaming() {
       try {
-        // Step 1: Authenticate and get streampath
+        // Step 1: Authenticate and get streampath and jwt
         this.statusMessage = 'Authenticating...';
-        const loginResponse = await fetch('http://localhost:5260/login', {
+        const loginResponse = await fetch('http://localhost:5260/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: 'streamer', password: 'securepass' }) // hard-coded credentials for demo purposes
@@ -72,8 +72,9 @@ export default {
         }
         const loginData = await loginResponse.json();
         const streampath = loginData.streampath;
-        if (!streampath) {
-          this.statusMessage = 'No stream path received from server.';
+        const jwt = loginData.jwt;
+        if (!streampath || !jwt) {
+          this.statusMessage = 'No stream path or token received from server.';
           return;
         }
 
@@ -84,7 +85,7 @@ export default {
         });
         this.$refs.videoElement.srcObject = this.localStream;
         this.statusMessage = 'Camera accessed. Ready to start streaming.';
-        await this.initiateWhip(streampath);
+        await this.initiateWhip(streampath, jwt);
       } catch (error) {
         console.error('Error starting streaming.', error);
         this.statusMessage = 'Error starting streaming. Please check permissions and network.';
@@ -103,7 +104,7 @@ export default {
       this.isStreaming = false;
       this.statusMessage = 'Stream stopped.';
     },
-    async initiateWhip(streampath) {
+    async initiateWhip(streampath, jwt) {
       this.statusMessage = 'Connecting to Mediamtx...';
 
       this.peerConnection = new RTCPeerConnection();
@@ -117,8 +118,8 @@ export default {
       await this.peerConnection.setLocalDescription(offer);
 
       try {
-        // Example: append streampath to the WHIP URL if required by your backend
-        const whipUrl = `http://localhost:8889/${encodeURIComponent(streampath)}/whip`;
+        // Append JWT as query param
+        const whipUrl = `http://localhost:8889/${encodeURIComponent(streampath)}/whip?jwt=${encodeURIComponent(jwt)}`;
 
         const response = await fetch(whipUrl, {
           method: 'POST',

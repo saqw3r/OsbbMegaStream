@@ -2,7 +2,7 @@
 
 
 # Login Request
-POST {{auth_HostAddress}}/login
+POST {{auth_HostAddress}}/auth
 Content-Type: application/json
 
 {
@@ -10,14 +10,4 @@ Content-Type: application/json
   "password": "securepass"
 }
 
-# Auth Request
-POST {{auth_HostAddress}}/auth
-Content-Type: application/json
-
-{
-  "user": "streamer",
-  "password": "securepass",
-  "path": "stream/path",
-  "protocol": "whip",
-  "query": "jwt=your_jwt_token"
-}
+GET {{auth_HostAddress}}/jwks.json

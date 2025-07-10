@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
+using System.Text.Json;
+using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace auth.Controllers
 {
@@ -9,80 +11,70 @@ namespace auth.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ILogger<AuthController> _logger;
+        private const string JwtKeyId = "megastream-key";
 
         public AuthController(ILogger<AuthController> logger)
         {
             _logger = logger;
         }
 
+        // RSA key for JWT signing
+        private static readonly System.Security.Cryptography.RSA Rsa = System.Security.Cryptography.RSA.Create();
+        private static readonly RsaSecurityKey RsaKey = new RsaSecurityKey(Rsa)
+        {
+            KeyId = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(JwtKeyId))
+        };
+
         [HttpPost("auth")]
-        public IActionResult Authenticate([FromBody] AuthRequest request)
+        public IActionResult Authenticate([FromBody] LoginRequest request)
         {
-            // Log all incoming data for debugging
-            Console.WriteLine($"User: {request.User}, Password: {request.Password}, Path: {request.Path}, Protocol: {request.Protocol}, Query: {request.Query}");
-
-            // Example: Validate JWT token
-            if (!string.IsNullOrEmpty(request.Query) && request.Query.Contains("jwt="))
-            {
-                var token = ExtractJwtFromQuery(request.Query);
-                if (ValidateJwt(token))
-                    return Ok(); // Authorized
-            }
-
-            // Example: Validate username/password
-            if (request.User == "streamer" && request.Password == "securepass")
-                return Ok(); // Authorized
-
-            return Unauthorized(); // Not authorized
-        }
-
-        private string ExtractJwtFromQuery(string query)
-        {
-            var match = Regex.Match(query, @"jwt=([^&]+)");
-            return match.Success ? match.Groups[1].Value : null;
-        }
-
-        private bool ValidateJwt(string token)
-        {
-            // Use JWT library to validate token signature, expiration, etc.
-            return true; // Stubbed for example
-        }
-
-        [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginRequest request)
-        {
-            if (request.Username == "streamer" && request.Password == "securepass") // hard-coded credentials for demo purposes
+            if (request.Username == "streamer" && request.Password == "securepass")
             {
                 var guid = Guid.NewGuid();
                 var utcNow = DateTime.UtcNow;
-                var exp = utcNow.AddHours(2); // token expiration -hard-coded for demo purposes
+                var exp = utcNow.AddHours(2);
 
-                // JWT creation
+                var permissionsJson = $$"""
+                [{
+                    "action": "publish",
+                    "path": "{{guid}}"
+                }]
+                """;
+
                 var claims = new[]
                 {
                     new Claim("sub", request.Username ?? ""),
                     new Claim("stream_id", guid.ToString()),
                     new Claim("iat", ((DateTimeOffset)utcNow).ToUnixTimeSeconds().ToString()),
                     new Claim("exp", ((DateTimeOffset)exp).ToUnixTimeSeconds().ToString()),
-                    new Claim("role", "test-taker") // hard-coded for demo purposes
+                    new Claim("role", "test-taker"),
+                    new Claim("mediamtx_permissions", permissionsJson)
                 };
-                
-                string passphrase = "ThisIsASuperSecretKeyThatIsAtLeast32Bytes"; // hard-coded for demo purposes
-                byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(passphrase);
-                var key = new SymmetricSecurityKey(keyBytes);
 
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+                var singningCredentials = new SigningCredentials(RsaKey, SecurityAlgorithms.RsaSha256);
                 var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
                     claims: claims,
-                    signingCredentials: creds
+                    signingCredentials: singningCredentials,
+                    notBefore: utcNow,
+                    expires: exp
                 );
                 var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
 
                 return Ok(new { streampath = guid.ToString(), jwt, datetime = utcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") });
             }
-            
             return Unauthorized();
+        }
+
+        [HttpGet("jwks.json")]
+        public IActionResult GetJwks()
+        {
+            // RsaKey is your same RsaSecurityKey from signing
+            var jwk = JsonWebKeyConverter.ConvertFromRSASecurityKey(RsaKey);
+
+            // It already sets kty, use, kid, alg, n, e correctly
+            var jwksJson = JsonSerializer.Serialize(new { keys = new[] { jwk } });
+            var set = new JsonWebKeySet(jwksJson);
+            return new JsonResult(set);
         }
     }
 }
