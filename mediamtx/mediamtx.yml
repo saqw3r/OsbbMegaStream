@@ -7,7 +7,7 @@
 # Global settings -> General
 
 # Verbosity of the program; available values are "error", "warn", "info", "debug".
-logLevel: info
+logLevel: debug
 # Destinations of log messages; available values are "stdout", "file" and "syslog".
 logDestinations: [stdout]
 # If "file" is in logDestinations, this is the file which will receive the logs.
@@ -46,7 +46,7 @@ runOnDisconnect:
 # * internal: users are stored in the configuration file
 # * http: an external HTTP URL is contacted to perform authentication
 # * jwt: an external identity server provides authentication through JWTs
-authMethod: http
+authMethod: jwt
 
 # Internal authentication.
 # list of users.
@@ -99,7 +99,7 @@ authInternalUsers:
 # }
 # If the response code is 20x, authentication is accepted, otherwise
 # it is discarded.
-authHTTPAddress: http://host.docker.internal:5260/auth
+authHTTPAddress: # http://host.docker.internal:5260/auth
 # Actions to exclude from HTTP-based authentication.
 # Format is the same as the one of user permissions.
 authHTTPExclude:
@@ -122,7 +122,7 @@ authHTTPExclude:
 # Users are expected to pass the JWT in the Authorization header, password or query parameter.
 # This is the JWKS URL that will be used to pull (once) the public key that allows
 # to validate JWTs.
-authJWTJWKS:
+authJWTJWKS: http://host.docker.internal:5260/jwks.json
 # If the JWKS URL has a self-signed or invalid certificate,
 # you can provide the fingerprint of the certificate in order to
 # validate it anyway. It can be obtained by running:
