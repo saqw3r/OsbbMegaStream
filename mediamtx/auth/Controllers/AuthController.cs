@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace auth.Controllers
 {
@@ -51,9 +53,33 @@ namespace auth.Controllers
         {
             if (request.Username == "streamer" && request.Password == "securepass") // hard-coded credentials for demo purposes
             {
-                // Generate a datetime-based UUID for the stream path
                 var guid = Guid.NewGuid();
-                return Ok(new { streampath = guid.ToString(), datetime = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") });
+                var utcNow = DateTime.UtcNow;
+                var exp = utcNow.AddHours(2); // token expiration -hard-coded for demo purposes
+
+                // JWT creation
+                var claims = new[]
+                {
+                    new Claim("sub", request.Username ?? ""),
+                    new Claim("stream_id", guid.ToString()),
+                    new Claim("iat", ((DateTimeOffset)utcNow).ToUnixTimeSeconds().ToString()),
+                    new Claim("exp", ((DateTimeOffset)exp).ToUnixTimeSeconds().ToString()),
+                    new Claim("role", "test-taker") // hard-coded for demo purposes
+                };
+                
+                string passphrase = "ThisIsASuperSecretKeyThatIsAtLeast32Bytes"; // hard-coded for demo purposes
+                byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(passphrase);
+                var key = new SymmetricSecurityKey(keyBytes);
+
+                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+                var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+                    claims: claims,
+                    signingCredentials: creds
+                );
+                var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
+
+                return Ok(new { streampath = guid.ToString(), jwt, datetime = utcNow.ToString("yyyy-MM-ddTHH:mm:ssZ") });
             }
             
             return Unauthorized();
