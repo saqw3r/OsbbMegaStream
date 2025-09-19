@@ -25,14 +25,14 @@ jobs:
       working-directory: ./mediamtx/auth
       run: dotnet restore ./auth.csproj
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build ./auth.csproj --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ./auth.csproj --no-build --verbosity normal
 
     - name: Restore dependencies for Webhook project
       working-directory: ./mediamtx/webhook
       run: dotnet restore ./webhook.csproj
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build ./webhook.csproj --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test ./webhook.csproj --no-build --verbosity normal
