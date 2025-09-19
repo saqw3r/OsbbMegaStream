@@ -22,16 +22,16 @@ jobs:
         dotnet-version: 8.0.x
          
     - name: Restore dependencies for Auth project
-      working-directory: ./mediamtx/auth/auth.csproj
-      run: dotnet restore
+      working-directory: ./mediamtx/auth
+      run: dotnet restore ./auth.csproj
     - name: Build
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
 
     - name: Restore dependencies for Webhook project
-      working-directory: ./mediamtx/webhook/webhook.csproj
-      run: dotnet restore
+      working-directory: ./mediamtx/webhook
+      run: dotnet restore ./webhook.csproj
     - name: Build
       run: dotnet build --no-restore
     - name: Test
